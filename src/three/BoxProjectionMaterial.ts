@@ -23,6 +23,26 @@ export const FACE_FLAG_UNIFORM: Record<FaceKey, string> = {
   bottom: 'uHasBottom',
 };
 
+/** Uniform name carrying the heightmap (scan result) for each face. */
+export const FACE_HEIGHT_UNIFORM: Record<FaceKey, string> = {
+  front: 'uHeightFront',
+  back: 'uHeightBack',
+  left: 'uHeightLeft',
+  right: 'uHeightRight',
+  top: 'uHeightTop',
+  bottom: 'uHeightBottom',
+};
+
+/** Uniform name of the boolean "this face has a heightmap" flag. */
+export const FACE_HEIGHT_FLAG_UNIFORM: Record<FaceKey, string> = {
+  front: 'uHasHeightFront',
+  back: 'uHasHeightBack',
+  left: 'uHasHeightLeft',
+  right: 'uHasHeightRight',
+  top: 'uHasHeightTop',
+  bottom: 'uHasHeightBottom',
+};
+
 /** 1x1 transparent texture used as the default for unfilled sampler uniforms. */
 function createBlankTexture(): THREE.Texture {
   const texture = new THREE.DataTexture(
@@ -36,9 +56,9 @@ function createBlankTexture(): THREE.Texture {
 }
 
 /**
- * Builds the box-projection material. All 6 face samplers start as blank
- * transparent textures with their flags off, so the proxy renders as a flat
- * Zen-gray solid until images are uploaded.
+ * Builds the box-projection material. All 6 image + height samplers start as
+ * blank transparent textures with their flags off, so the proxy renders as a
+ * flat Zen-gray solid (and stays un-displaced) until images are uploaded.
  */
 export function createBoxProjectionMaterial(): THREE.ShaderMaterial {
   return new THREE.ShaderMaterial({
@@ -58,6 +78,22 @@ export function createBoxProjectionMaterial(): THREE.ShaderMaterial {
       uHasRight: { value: false },
       uHasTop: { value: false },
       uHasBottom: { value: false },
+
+      uHeightFront: { value: createBlankTexture() },
+      uHeightBack: { value: createBlankTexture() },
+      uHeightLeft: { value: createBlankTexture() },
+      uHeightRight: { value: createBlankTexture() },
+      uHeightTop: { value: createBlankTexture() },
+      uHeightBottom: { value: createBlankTexture() },
+
+      uHasHeightFront: { value: false },
+      uHasHeightBack: { value: false },
+      uHasHeightLeft: { value: false },
+      uHasHeightRight: { value: false },
+      uHasHeightTop: { value: false },
+      uHasHeightBottom: { value: false },
+
+      uHeightStrength: { value: 0.0 },
 
       uBoundsMin: { value: new THREE.Vector3(-1, -1, -1) },
       uBoundsMax: { value: new THREE.Vector3(1, 1, 1) },

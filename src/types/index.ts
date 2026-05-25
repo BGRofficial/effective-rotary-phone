@@ -40,6 +40,8 @@ export interface FaceSlot {
   sourceUrl: string | null;
   /** Object URL of the extracted silhouette (RGBA, transparent background). */
   maskUrl: string | null;
+  /** Object URL of the extracted relief heightmap (R = height, A = mask). */
+  heightUrl: string | null;
   status: SlotStatus;
   /** Human-readable error message when status is 'error'. */
   error: string | null;
@@ -75,4 +77,30 @@ export interface BackgroundRemover {
     image: ImageBitmap,
     options?: MaskOptions,
   ): Promise<MaskResult>;
+}
+
+/** Result of a scan pass — a grayscale heightmap aligned to the source image. */
+export interface HeightResult {
+  width: number;
+  height: number;
+  /** R channel = height (0..1, 0.5 = neutral). A channel = silhouette coverage. */
+  heightCanvas: HTMLCanvasElement;
+}
+
+export interface HeightOptions {
+  /** Amplification of the local-highpass detail (typical 1..4). */
+  detail?: number;
+}
+
+/**
+ * Pluggable scan pass. The luminance-based implementation derives relief from
+ * a single image; a future depth-estimation model (e.g. DepthAnything via
+ * onnxruntime-web) can replace it under the same interface.
+ */
+export interface HeightExtractor {
+  extractHeight(
+    image: ImageBitmap,
+    mask: HTMLCanvasElement,
+    options?: HeightOptions,
+  ): Promise<HeightResult>;
 }

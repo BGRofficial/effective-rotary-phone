@@ -103,10 +103,17 @@ export function UploadSlot({ face }: UploadSlotProps) {
         </button>
       )}
 
+      {/*
+        `capture="environment"` makes mobile browsers open the rear camera
+        directly when the slot is tapped, so the artist can scan an object on
+        the spot. Desktop browsers ignore `capture` and fall back to the
+        normal file picker.
+      */}
       <input
         ref={inputRef}
         type="file"
         accept="image/*"
+        capture="environment"
         className="upload-slot__input"
         onChange={(event) => {
           acceptFiles(event.target.files);

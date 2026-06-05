@@ -1,5 +1,6 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { useStudioStore } from '../../state/useStudioStore';
 import { useImageTexture } from '../../hooks/useImageTexture';
 import {
@@ -13,17 +14,17 @@ import type { FaceKey } from '../../types';
 import { FACE_ORDER } from '../../types';
 
 /**
- * The base proxy primitive (Phase 2).
+ * The proxy primitive (Phase 2 base + Phase R reconstruction).
  *
- * A sphere stands in for stones, a cylinder for branches. The box-projection
- * shader is attached and wired to all 6 face textures and 6 heightmaps; the
- * vertex stage uses the heightmaps to displace the surface, giving the proxy
- * organic relief derived from the scanned photos.
+ * Primitive mode (sphere/cylinder) is the live-while-uploading view.
+ * Mesh mode swaps in the server-reconstructed `.glb` geometry; the same
+ * box-projection material drives color and per-face heightmap relief on it.
  */
 export function ProxyObject() {
   const proxyKind = useStudioStore((state) => state.proxyKind);
   const slots = useStudioStore((state) => state.slots);
   const reliefStrength = useStudioStore((state) => state.reliefStrength);
+  const glbUrl = useStudioStore((state) => state.reconstruction.glbUrl);
 
   // Color textures (mask result) per face.
   const colorTextures: Record<FaceKey, THREE.Texture | null> = {
@@ -60,14 +61,67 @@ export function ProxyObject() {
   }, []);
   useEffect(() => () => blankTexture.dispose(), [blankTexture]);
 
-  const geometry = useMemo(() => {
-    return proxyKind === 'sphere'
-      ? new THREE.SphereGeometry(1, 128, 128)
-      : new THREE.CylinderGeometry(0.72, 0.72, 2.4, 128, 96, false);
+  const primitiveGeometry = useMemo(() => {
+    return proxyKind === 'cylinder'
+      ? new THREE.CylinderGeometry(0.72, 0.72, 2.4, 128, 96, false)
+      : new THREE.SphereGeometry(1, 128, 128);
   }, [proxyKind]);
-  useEffect(() => () => geometry.dispose(), [geometry]);
+  useEffect(() => () => primitiveGeometry.dispose(), [primitiveGeometry]);
 
-  // Keep the shader's projection bounds aligned with the active geometry.
+  const [meshGeometry, setMeshGeometry] = useState<THREE.BufferGeometry | null>(
+    null,
+  );
+
+  // Load the reconstructed mesh whenever the URL changes.
+  useEffect(() => {
+    if (!glbUrl) {
+      setMeshGeometry(null);
+      return;
+    }
+    let cancelled = false;
+    const loader = new GLTFLoader();
+    loader.load(
+      glbUrl,
+      (gltf) => {
+        if (cancelled) return;
+        let geom: THREE.BufferGeometry | null = null;
+        gltf.scene.traverse((obj) => {
+          if (geom !== null) return;
+          const mesh = obj as THREE.Mesh;
+          if (mesh.isMesh && mesh.geometry) {
+            geom = mesh.geometry.clone();
+            if (!geom.getAttribute('normal')) {
+              geom.computeVertexNormals();
+            }
+          }
+        });
+        setMeshGeometry(geom);
+      },
+      undefined,
+      (err) => {
+        console.error('Failed to load reconstructed mesh', err);
+        if (!cancelled) setMeshGeometry(null);
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [glbUrl]);
+
+  // Dispose the loaded mesh geometry on change/unmount.
+  useEffect(() => {
+    return () => {
+      meshGeometry?.dispose();
+    };
+  }, [meshGeometry]);
+
+  const useMesh = proxyKind === 'mesh' && meshGeometry !== null;
+  const geometry = useMesh
+    ? (meshGeometry as THREE.BufferGeometry)
+    : primitiveGeometry;
+
+  // Keep the shader's projection bounds aligned with whichever geometry is
+  // active so box-projection UVs cover the object.
   useEffect(() => {
     geometry.computeBoundingBox();
     const box = geometry.boundingBox;
@@ -115,10 +169,13 @@ export function ProxyObject() {
     heightTextures.bottom,
   ]);
 
-  // Live-update the global displacement amplitude.
+  // When the reconstructed mesh is active the geometry already carries the
+  // real surface — fade out the heightmap-driven displacement so we don't
+  // double-displace. The slider still tweaks fine detail in primitive mode.
   useEffect(() => {
-    material.uniforms.uHeightStrength.value = reliefStrength;
-  }, [material, reliefStrength]);
+    const scale = useMesh ? 0.15 : 1.0;
+    material.uniforms.uHeightStrength.value = reliefStrength * scale;
+  }, [material, reliefStrength, useMesh]);
 
   return <mesh geometry={geometry} material={material} />;
 }

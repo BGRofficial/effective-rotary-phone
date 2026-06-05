@@ -1,0 +1,25 @@
+services:
+  api:
+    build: .
+    image: projection-reconstruction:0.1.0
+    container_name: projection-reconstruction
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/data
+    environment:
+      ALLOWED_ORIGINS: "http://localhost:5173,http://localhost:4173"
+      VOXEL_RESOLUTION: "160"
+      MESH_TARGET_FACES: "12000"
+      MAX_INPUT_DIM: "768"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          python -c "import urllib.request, sys;
+          sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=2).status == 200 else 1)"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s

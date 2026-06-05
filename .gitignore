@@ -19,3 +19,13 @@ pnpm-debug.log*
 
 # TS build info
 *.tsbuildinfo
+
+# Python (server/)
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+*.egg-info/
+
+# Server runtime data
+server/data/

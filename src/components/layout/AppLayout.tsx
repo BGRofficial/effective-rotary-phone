@@ -1,6 +1,7 @@
 import { SceneCanvas } from '../viewer/SceneCanvas';
 import { ProxyControls } from '../viewer/ProxyControls';
 import { ReliefControl } from '../viewer/ReliefControl';
+import { ReconstructControl } from '../viewer/ReconstructControl';
 import { UploadPanel } from '../upload/UploadPanel';
 
 /**
@@ -15,6 +16,7 @@ export function AppLayout() {
       <SceneCanvas />
       <ProxyControls />
       <ReliefControl />
+      <ReconstructControl />
       <UploadPanel />
     </div>
   );

@@ -47,7 +47,28 @@ export interface FaceSlot {
   error: string | null;
 }
 
-export type ProxyKind = 'sphere' | 'cylinder';
+export type ProxyKind = 'sphere' | 'cylinder' | 'mesh';
+
+export type ReconstructionStatus =
+  | 'idle'
+  | 'submitting'
+  | 'running'
+  | 'done'
+  | 'failed';
+
+export interface ReconstructionState {
+  status: ReconstructionStatus;
+  jobId: string | null;
+  /** Human-readable stage from the server (carving / meshing / cleaning / ...). */
+  stage: string;
+  /** 0..1 progress reported by the server. */
+  progress: number;
+  /** Final `.glb` URL once the server has produced the mesh. */
+  glbUrl: string | null;
+  /** Server-reported triangle count when done. */
+  triangleCount: number | null;
+  error: string | null;
+}
 
 /** Result of a background-removal pass. */
 export interface MaskResult {

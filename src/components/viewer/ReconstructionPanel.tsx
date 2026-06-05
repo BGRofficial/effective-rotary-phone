@@ -25,6 +25,7 @@ function formatCount(n: number | null): string {
 export function ReconstructionPanel() {
   const slots = useStudioStore((state) => state.slots);
   const reconstruction = useStudioStore((state) => state.reconstruction);
+  const serverStatus = useStudioStore((state) => state.serverHealth.status);
   const requestReconstruction = useStudioStore(
     (state) => state.requestReconstruction,
   );
@@ -37,6 +38,7 @@ export function ReconstructionPanel() {
   const running = status === 'submitting' || status === 'running';
   const done = status === 'done' && reconstruction.glbUrl !== null;
   const failed = status === 'failed';
+  const serverOffline = serverStatus === 'offline';
 
   let inner: React.ReactNode;
 
@@ -147,6 +149,13 @@ export function ReconstructionPanel() {
           </button>
         </div>
       </>
+    );
+  } else if (serverOffline) {
+    inner = (
+      <div className="recon-panel__hint">
+        Reconstruction server offline — local masking, scan and proxy modes
+        still work.
+      </div>
     );
   } else {
     // idle

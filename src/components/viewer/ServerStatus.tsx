@@ -1,48 +1,38 @@
-import { useEffect, useState } from 'react';
-import {
-  RECONSTRUCTION_API_URL,
-  fetchServerHealth,
-} from '../../reconstruction/MeshReconstructor';
-
-type Status = 'checking' | 'online' | 'offline';
+import { useEffect } from 'react';
+import { useStudioStore } from '../../state/useStudioStore';
+import { RECONSTRUCTION_API_URL } from '../../reconstruction/MeshReconstructor';
 
 const POLL_INTERVAL_MS = 20_000;
 
 /**
  * Tiny pill in the corner showing whether the reconstruction server is
- * reachable. Polls `/health` periodically; degrades silently when offline so
- * the studio still works for masking + relief + sphere/cylinder proxy.
+ * reachable. Drives a single `serverHealth` slot on the store that the
+ * Reconstruction panel also reads.
  */
 export function ServerStatus() {
-  const [status, setStatus] = useState<Status>('checking');
-  const [version, setVersion] = useState<string | null>(null);
+  const health = useStudioStore((state) => state.serverHealth);
+  const pollServerHealth = useStudioStore((state) => state.pollServerHealth);
 
   useEffect(() => {
-    let cancelled = false;
-    const ping = async () => {
-      const health = await fetchServerHealth();
-      if (cancelled) return;
-      setStatus(health.ok ? 'online' : 'offline');
-      setVersion(health.version);
-    };
-    void ping();
-    const id = window.setInterval(ping, POLL_INTERVAL_MS);
-    return () => {
-      cancelled = true;
-      window.clearInterval(id);
-    };
-  }, []);
+    void pollServerHealth();
+    const id = window.setInterval(() => {
+      void pollServerHealth();
+    }, POLL_INTERVAL_MS);
+    return () => window.clearInterval(id);
+  }, [pollServerHealth]);
 
   const label =
-    status === 'online'
-      ? (version ? `v${version}` : 'on')
-      : status === 'offline'
+    health.status === 'online'
+      ? health.version
+        ? `v${health.version}`
+        : 'on'
+      : health.status === 'offline'
         ? 'off'
         : '…';
 
   return (
     <div
-      className={`server-status server-status--${status}`}
+      className={`server-status server-status--${health.status}`}
       title={RECONSTRUCTION_API_URL}
       aria-live="polite"
     >

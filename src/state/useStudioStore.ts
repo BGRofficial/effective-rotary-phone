@@ -11,9 +11,17 @@ import { heightExtractor } from '../scan/HeightExtractor';
 import {
   fetchJobStatus,
   fetchMeshSize,
+  fetchServerHealth,
   resolveMeshUrl,
   submitReconstruction,
 } from '../reconstruction/MeshReconstructor';
+
+type ServerStatusKind = 'checking' | 'online' | 'offline';
+
+interface ServerHealth {
+  status: ServerStatusKind;
+  version: string | null;
+}
 
 /** Encode a canvas as a PNG object URL. */
 function canvasToObjectUrl(canvas: HTMLCanvasElement): Promise<string> {
@@ -66,6 +74,7 @@ interface StudioState {
   /** Overall displacement amplitude (0..1) applied to all face heightmaps. */
   reliefStrength: number;
   reconstruction: ReconstructionState;
+  serverHealth: ServerHealth;
 
   loadSlotImage: (face: FaceKey, file: File) => Promise<void>;
   clearSlot: (face: FaceKey) => void;
@@ -74,6 +83,8 @@ interface StudioState {
   /** Submit the 6 silhouettes to the server and poll until a mesh is ready. */
   requestReconstruction: () => Promise<void>;
   clearReconstruction: () => void;
+  /** Refresh server health into the store. */
+  pollServerHealth: () => Promise<void>;
 }
 
 export const useStudioStore = create<StudioState>((set, get) => ({
@@ -81,6 +92,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   proxyKind: 'sphere',
   reliefStrength: 0.35,
   reconstruction: { ...initialReconstruction },
+  serverHealth: { status: 'checking', version: null },
 
   loadSlotImage: async (face, file) => {
     revokeSlotUrls(get().slots[face]);
@@ -273,6 +285,16 @@ export const useStudioStore = create<StudioState>((set, get) => ({
     set({
       reconstruction: { ...initialReconstruction },
       proxyKind: get().proxyKind === 'mesh' ? 'sphere' : get().proxyKind,
+    });
+  },
+
+  pollServerHealth: async () => {
+    const health = await fetchServerHealth();
+    set({
+      serverHealth: {
+        status: health.ok ? 'online' : 'offline',
+        version: health.version,
+      },
     });
   },
 }));

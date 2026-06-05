@@ -72,3 +72,57 @@ export async function fetchJobStatus(jobId: string): Promise<JobStatus> {
   }
   return (await res.json()) as JobStatus;
 }
+
+export interface ServerHealth {
+  ok: boolean;
+  version: string | null;
+}
+
+/** Ping the server's /health endpoint. Returns null fields on network failure. */
+export async function fetchServerHealth(
+  signal?: AbortSignal,
+): Promise<ServerHealth> {
+  try {
+    const res = await fetch(`${RECONSTRUCTION_API_URL}/health`, {
+      signal,
+      cache: 'no-store',
+    });
+    if (!res.ok) return { ok: false, version: null };
+    const data = (await res.json()) as { ok: boolean; version: string };
+    return { ok: !!data.ok, version: data.version ?? null };
+  } catch {
+    return { ok: false, version: null };
+  }
+}
+
+/** HEAD request the mesh URL to discover its Content-Length without downloading. */
+export async function fetchMeshSize(url: string): Promise<number | null> {
+  try {
+    const res = await fetch(url, { method: 'HEAD' });
+    if (!res.ok) return null;
+    const len = res.headers.get('content-length');
+    return len ? Number(len) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Cross-origin-safe download: fetch the mesh as a blob and trigger a save
+ * via a temporary anchor element.
+ */
+export async function downloadMesh(url: string, filename: string): Promise<void> {
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Mesh download failed (${res.status})`);
+  }
+  const blob = await res.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(objectUrl);
+}

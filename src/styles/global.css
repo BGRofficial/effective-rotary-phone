@@ -95,52 +95,200 @@ body {
   cursor: not-allowed;
 }
 
-/* ---- Reconstruct button -------------------------------------------- */
+/* ---- Server status pill ------------------------------------------- */
 
-.reconstruct-control {
+.server-status {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 14px);
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 8px;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  background: rgba(20, 20, 23, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.server-status__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.server-status--online .server-status__dot {
+  background: #4ade80;
+  box-shadow: 0 0 6px rgba(74, 222, 128, 0.55);
+}
+
+.server-status--offline .server-status__dot {
+  background: #ef6a6a;
+}
+
+.server-status--online {
+  color: var(--text);
+}
+
+/* ---- Reconstruction panel ----------------------------------------- */
+
+.recon-panel {
   position: absolute;
   top: calc(env(safe-area-inset-top, 0px) + 108px);
   left: 50%;
   transform: translateX(-50%);
-  appearance: none;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 220px;
+  max-width: min(360px, calc(100vw - 32px));
+  padding: 10px 14px;
   border: 1px solid var(--hairline);
-  border-radius: 999px;
-  padding: 7px 18px;
-  font: inherit;
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text);
+  border-radius: 14px;
   background: rgba(20, 20, 23, 0.62);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  cursor: pointer;
-  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+  transition: border-color 0.2s ease;
 }
 
-.reconstruct-control:hover:not(:disabled) {
-  border-color: rgba(255, 255, 255, 0.32);
+.recon-panel.is-running {
+  border-color: rgba(255, 255, 255, 0.22);
 }
 
-.reconstruct-control:disabled {
-  cursor: not-allowed;
-  opacity: 0.4;
+.recon-panel.is-done {
+  border-color: rgba(74, 222, 128, 0.4);
 }
 
-.reconstruct-control.is-busy {
+.recon-panel.is-failed {
+  border-color: var(--danger);
+}
+
+.recon-panel__stages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+}
+
+.recon-panel__stage {
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.04);
+  transition: color 0.18s, background 0.18s;
+}
+
+.recon-panel__stage.is-reached {
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.recon-panel__stage.is-current {
+  color: #16161a;
+  background: var(--accent);
+}
+
+.recon-panel__bar {
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.recon-panel__bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.35s ease;
+}
+
+.recon-panel__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.recon-panel__meta-label {
   color: var(--text-muted);
-  border-color: rgba(255, 255, 255, 0.25);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 9px;
 }
 
-.reconstruct-control.is-ready {
+.recon-panel__meta-value {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.recon-panel__meta-sep {
+  color: rgba(255, 255, 255, 0.18);
+}
+
+.recon-panel__actions {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.recon-panel__action {
+  appearance: none;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: color 0.18s, background 0.18s, border-color 0.18s, opacity 0.18s;
+}
+
+.recon-panel__action:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.recon-panel__action:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.recon-panel__action--primary {
   color: #16161a;
   background: var(--accent);
   border-color: transparent;
 }
 
-.reconstruct-control.is-failed {
-  border-color: var(--danger);
+.recon-panel__action--primary:hover:not(:disabled) {
+  background: #fff;
+}
+
+.recon-panel__action--ghost {
+  color: var(--text-muted);
+}
+
+.recon-panel__error {
+  font-size: 10px;
+  letter-spacing: 0.04em;
   color: var(--danger);
+  text-align: center;
+  word-break: break-word;
 }
 
 /* ---- Relief slider -------------------------------------------------- */

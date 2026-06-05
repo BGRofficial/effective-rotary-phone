@@ -10,6 +10,7 @@ import { backgroundRemover } from '../masking/BackgroundRemover';
 import { heightExtractor } from '../scan/HeightExtractor';
 import {
   fetchJobStatus,
+  fetchMeshSize,
   resolveMeshUrl,
   submitReconstruction,
 } from '../reconstruction/MeshReconstructor';
@@ -51,6 +52,8 @@ const initialReconstruction: ReconstructionState = {
   progress: 0,
   glbUrl: null,
   triangleCount: null,
+  sizeBytes: null,
+  completedAt: null,
   error: null,
 };
 
@@ -219,20 +222,30 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       }
 
       if (job.status === 'done' && job.mesh_url) {
+        const resolvedUrl = resolveMeshUrl(job.mesh_url);
         set((state) => ({
           reconstruction: {
             ...state.reconstruction,
             status: 'done',
             stage: 'done',
             progress: 1,
-            glbUrl: resolveMeshUrl(job.mesh_url as string),
+            glbUrl: resolvedUrl,
             triangleCount: job.triangle_count,
+            completedAt: Date.now(),
             error: null,
           },
           // Auto-switch the proxy so the user sees the reconstructed mesh
           // immediately once it lands.
           proxyKind: 'mesh',
         }));
+        // Lazily fetch the file size for the panel; not blocking the swap.
+        void fetchMeshSize(resolvedUrl).then((size) => {
+          if (get().reconstruction.glbUrl === resolvedUrl) {
+            set((state) => ({
+              reconstruction: { ...state.reconstruction, sizeBytes: size },
+            }));
+          }
+        });
         return;
       }
       if (job.status === 'failed') {

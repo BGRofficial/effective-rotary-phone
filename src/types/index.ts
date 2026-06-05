@@ -67,6 +67,10 @@ export interface ReconstructionState {
   glbUrl: string | null;
   /** Server-reported triangle count when done. */
   triangleCount: number | null;
+  /** Mesh file size in bytes (HEAD-fetched after the job completes). */
+  sizeBytes: number | null;
+  /** Epoch ms when the mesh became available. */
+  completedAt: number | null;
   error: string | null;
 }
 

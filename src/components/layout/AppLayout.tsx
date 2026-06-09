@@ -4,6 +4,7 @@ import { ReliefControl } from '../viewer/ReliefControl';
 import { ReconstructionPanel } from '../viewer/ReconstructionPanel';
 import { ServerStatus } from '../viewer/ServerStatus';
 import { UploadPanel } from '../upload/UploadPanel';
+import { LiveScanLauncher } from '../scan/LiveScanLauncher';
 
 /**
  * Mobile-first studio shell.
@@ -20,6 +21,7 @@ export function AppLayout() {
       <ReliefControl />
       <ReconstructionPanel />
       <UploadPanel />
+      <LiveScanLauncher />
     </div>
   );
 }

@@ -68,6 +68,27 @@ export function primeDepthModel(): Promise<DepthPipeline> {
   return loadPipeline();
 }
 
+/** True once the depth pipeline has finished loading at least once. */
+export function isDepthModelReady(): boolean {
+  return pipelineReady;
+}
+
+let pipelineReady = false;
+
+/**
+ * Run depth on a single frame and return a normalized grayscale canvas, for
+ * live-preview overlays. Lighter than `extractHeight` — no silhouette,
+ * no resampling — so it can run in a continuous loop.
+ */
+export async function estimateDepthPreview(
+  frame: HTMLCanvasElement | ImageBitmap,
+): Promise<HTMLCanvasElement> {
+  const depthPipeline = await loadPipeline();
+  pipelineReady = true;
+  const result = await depthPipeline(frame);
+  return result.depth.toCanvas();
+}
+
 function bitmapToCanvas(image: ImageBitmap): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
   canvas.width = image.width;

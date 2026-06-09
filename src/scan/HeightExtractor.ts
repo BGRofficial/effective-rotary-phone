@@ -1,41 +1,60 @@
 import type { HeightExtractor, HeightOptions, HeightResult } from '../types';
+import { RemoteDepthExtractor } from './remoteDepthExtractor';
 import { TransformersDepthExtractor } from './transformersDepthExtractor';
 import { WebGLLuminanceHeightExtractor } from './webglLuminanceHeightExtractor';
 
 export type { HeightExtractor } from '../types';
 
 /**
- * Composite extractor: tries real monocular depth (DepthAnything V2 via
- * `@huggingface/transformers`) first and falls back to the model-free WebGL
- * luminance high-pass when the model can't be loaded — e.g. when the user is
- * offline or the Hugging Face CDN is blocked. Either way the consumer
- * (`useStudioStore.loadSlotImage`) sees the same `HeightExtractor` contract.
+ * Three-tier extractor with graceful degradation:
+ *
+ *  1. **Remote depth** — `/depth` on the reconstruction server (DepthAnything
+ *     V2 ONNX, server-side). Best quality + fast on a host with proper
+ *     compute; used when the server is reachable.
+ *  2. **Browser depth** — DepthAnything V2 in-browser via
+ *     `@huggingface/transformers`. Works offline once the model is cached.
+ *  3. **Luminance high-pass** — pure WebGL, no model. Final safety net.
+ *
+ * Each tier is tried in order; a failure locks that tier off for the
+ * remainder of the session so we don't pay the timeout twice. The interface
+ * exposed to callers (`useStudioStore.loadSlotImage`) doesn't change.
  */
-class DepthOrLuminanceExtractor implements HeightExtractor {
-  private readonly primary = new TransformersDepthExtractor();
-  private readonly fallback = new WebGLLuminanceHeightExtractor();
-  private primaryDisabled = false;
+class CompositeHeightExtractor implements HeightExtractor {
+  private readonly remote = new RemoteDepthExtractor();
+  private readonly browser = new TransformersDepthExtractor();
+  private readonly luminance = new WebGLLuminanceHeightExtractor();
+  private remoteDisabled = false;
+  private browserDisabled = false;
 
   async extractHeight(
     image: ImageBitmap,
     mask: HTMLCanvasElement,
     options?: HeightOptions,
   ): Promise<HeightResult> {
-    if (!this.primaryDisabled) {
+    if (!this.remoteDisabled) {
       try {
-        return await this.primary.extractHeight(image, mask, options);
+        return await this.remote.extractHeight(image, mask, options);
       } catch (err) {
         console.warn(
-          'Depth model unavailable, falling back to luminance high-pass.',
+          'Server depth unavailable — switching to in-browser depth model.',
           err,
         );
-        // One failure (download blocked, WebGPU+WASM both refused) is enough
-        // to lock the fallback in for the rest of the session.
-        this.primaryDisabled = true;
+        this.remoteDisabled = true;
       }
     }
-    return this.fallback.extractHeight(image, mask, options);
+    if (!this.browserDisabled) {
+      try {
+        return await this.browser.extractHeight(image, mask, options);
+      } catch (err) {
+        console.warn(
+          'Browser depth unavailable — falling back to luminance high-pass.',
+          err,
+        );
+        this.browserDisabled = true;
+      }
+    }
+    return this.luminance.extractHeight(image, mask, options);
   }
 }
 
-export const heightExtractor: HeightExtractor = new DepthOrLuminanceExtractor();
+export const heightExtractor: HeightExtractor = new CompositeHeightExtractor();

@@ -12,6 +12,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from .api.depth import router as depth_router
 from .api.reconstruct import router as reconstruct_router
 from .config import ALLOWED_ORIGINS, MESH_DIR, VERSION
 
@@ -40,3 +41,4 @@ app.mount(
 )
 
 app.include_router(reconstruct_router)
+app.include_router(depth_router)

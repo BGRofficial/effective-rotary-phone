@@ -34,7 +34,23 @@ Generated meshes are written to `./data/meshes/` (mounted into the container).
 | POST   | `/reconstruct`                    | multipart `front/back/left/right/top/bottom` PNGs → `{ job_id }` |
 | GET    | `/jobs/{job_id}`                  | `{ status, stage, progress, mesh_url?, triangle_count?, error? }` |
 | GET    | `/static/meshes/{job_id}.glb`     | binary `.glb`                            |
+| POST   | `/depth`                          | multipart `image` (+ optional `mask`) → grayscale depth PNG |
 | GET    | `/health`                         | liveness + version                       |
+
+### `/depth` — camera relief sensor
+
+Per-pixel depth from a single face photo via DepthAnything V2 Small (ONNX,
+int8). Output is an 8-bit grayscale PNG sized to match the input — brighter
+pixels are closer to the camera (surface bumps). Pass an RGBA silhouette in
+`mask` and the depth values are renormalized over the masked region so the
+object's own near/far range — not the camera offset — drives the contrast.
+
+```bash
+curl -s -X POST http://localhost:8000/depth \
+  -F image=@front.png \
+  -F mask=@front_mask.png \
+  -o front_depth.png
+```
 
 ### Try it with curl
 

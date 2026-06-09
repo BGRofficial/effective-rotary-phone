@@ -21,7 +21,15 @@ RUN pip install --no-cache-dir \
     "scikit-image>=0.24" \
     "trimesh>=4.5" \
     "pygltflib>=1.16" \
-    "fast-simplification>=0.1.7"
+    "fast-simplification>=0.1.7" \
+    "onnxruntime>=1.20" \
+    "huggingface-hub>=0.26"
+
+# Pre-bake the DepthAnything V2 Small (int8) weights into the image so the
+# container is fully offline-capable after build (~25 MB download here).
+RUN python -c "from huggingface_hub import hf_hub_download; \
+hf_hub_download(repo_id='onnx-community/depth-anything-v2-small', \
+filename='onnx/model_quantized.onnx')"
 
 COPY app ./app
 

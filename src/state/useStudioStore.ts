@@ -75,6 +75,12 @@ interface StudioState {
   reliefStrength: number;
   reconstruction: ReconstructionState;
   serverHealth: ServerHealth;
+  /** Projector-calibration mode: the orbit view becomes the projector POV. */
+  projectorMode: boolean;
+  /** Virtual projector lens — vertical field of view in degrees. */
+  projectorFov: number;
+  /** Aspect ratio (w/h) of the selected export resolution / aspect guide. */
+  projectorAspect: number;
 
   loadSlotImage: (face: FaceKey, file: File) => Promise<void>;
   clearSlot: (face: FaceKey) => void;
@@ -85,6 +91,9 @@ interface StudioState {
   clearReconstruction: () => void;
   /** Refresh server health into the store. */
   pollServerHealth: () => Promise<void>;
+  setProjectorMode: (on: boolean) => void;
+  setProjectorFov: (fov: number) => void;
+  setProjectorAspect: (aspect: number) => void;
 }
 
 export const useStudioStore = create<StudioState>((set, get) => ({
@@ -93,6 +102,9 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   reliefStrength: 0.35,
   reconstruction: { ...initialReconstruction },
   serverHealth: { status: 'checking', version: null },
+  projectorMode: false,
+  projectorFov: 42,
+  projectorAspect: 16 / 9,
 
   loadSlotImage: async (face, file) => {
     revokeSlotUrls(get().slots[face]);
@@ -297,4 +309,9 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       },
     });
   },
+
+  setProjectorMode: (on) => set({ projectorMode: on }),
+  setProjectorFov: (fov) =>
+    set({ projectorFov: Math.max(15, Math.min(80, fov)) }),
+  setProjectorAspect: (aspect) => set({ projectorAspect: aspect }),
 }));

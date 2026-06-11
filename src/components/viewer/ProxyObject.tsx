@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { useStudioStore } from '../../state/useStudioStore';
 import { useImageTexture } from '../../hooks/useImageTexture';
+import { registerBlueprintMesh } from '../../blueprint/blueprintBridge';
 import {
   createBoxProjectionMaterial,
   FACE_FLAG_UNIFORM,
@@ -177,5 +178,12 @@ export function ProxyObject() {
     material.uniforms.uHeightStrength.value = reliefStrength * scale;
   }, [material, reliefStrength, useMesh]);
 
-  return <mesh geometry={geometry} material={material} />;
+  // Expose the live mesh to the blueprint generator (projector export).
+  const meshRef = useRef<THREE.Mesh>(null);
+  useEffect(() => {
+    registerBlueprintMesh(meshRef.current);
+    return () => registerBlueprintMesh(null);
+  }, [geometry]);
+
+  return <mesh ref={meshRef} geometry={geometry} material={material} />;
 }

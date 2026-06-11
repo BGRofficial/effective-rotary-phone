@@ -94,6 +94,10 @@ export function createBoxProjectionMaterial(): THREE.ShaderMaterial {
       uHasHeightBottom: { value: false },
 
       uHeightStrength: { value: 0.0 },
+      // Radius (in UV units) of the per-vertex Gaussian blur over the
+      // heightmap — kills per-vertex noise so the proxy shows macro
+      // curvature rather than per-pixel spikes.
+      uHeightSmoothness: { value: 0.012 },
 
       uBoundsMin: { value: new THREE.Vector3(-1, -1, -1) },
       uBoundsMax: { value: new THREE.Vector3(1, 1, 1) },

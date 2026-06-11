@@ -73,6 +73,12 @@ interface StudioState {
   proxyKind: ProxyKind;
   /** Overall displacement amplitude (0..1) applied to all face heightmaps. */
   reliefStrength: number;
+  /**
+   * Smoothness (0..1) of the per-vertex heightmap blur. Higher values
+   * suppress per-pixel noise so the proxy shows macro curvature rather than
+   * spikes; 0 reproduces the raw heightmap detail.
+   */
+  heightSmoothness: number;
   reconstruction: ReconstructionState;
   serverHealth: ServerHealth;
   /** Projector-calibration mode: the orbit view becomes the projector POV. */
@@ -86,6 +92,7 @@ interface StudioState {
   clearSlot: (face: FaceKey) => void;
   setProxyKind: (kind: ProxyKind) => void;
   setReliefStrength: (value: number) => void;
+  setHeightSmoothness: (value: number) => void;
   /** Submit the 6 silhouettes to the server and poll until a mesh is ready. */
   requestReconstruction: () => Promise<void>;
   clearReconstruction: () => void;
@@ -100,6 +107,8 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   slots: createEmptySlots(),
   proxyKind: 'sphere',
   reliefStrength: 0.35,
+  // Default smoothness shows macro curvature rather than per-pixel spikes.
+  heightSmoothness: 0.55,
   reconstruction: { ...initialReconstruction },
   serverHealth: { status: 'checking', version: null },
   projectorMode: false,
@@ -182,6 +191,8 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   setProxyKind: (kind) => set({ proxyKind: kind }),
   setReliefStrength: (value) =>
     set({ reliefStrength: Math.max(0, Math.min(1, value)) }),
+  setHeightSmoothness: (value) =>
+    set({ heightSmoothness: Math.max(0, Math.min(1, value)) }),
 
   requestReconstruction: async () => {
     set({

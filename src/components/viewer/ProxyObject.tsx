@@ -25,6 +25,7 @@ export function ProxyObject() {
   const proxyKind = useStudioStore((state) => state.proxyKind);
   const slots = useStudioStore((state) => state.slots);
   const reliefStrength = useStudioStore((state) => state.reliefStrength);
+  const heightSmoothness = useStudioStore((state) => state.heightSmoothness);
   const glbUrl = useStudioStore((state) => state.reconstruction.glbUrl);
 
   // Color textures (mask result) per face.
@@ -177,6 +178,14 @@ export function ProxyObject() {
     const scale = useMesh ? 0.15 : 1.0;
     material.uniforms.uHeightStrength.value = reliefStrength * scale;
   }, [material, reliefStrength, useMesh]);
+
+  // Smoothness slider in [0..1] -> Gaussian radius in UV units. With the
+  // 5x5 mask-aware kernel, 0.06 at the high end means a ~24% effective
+  // diameter on the heightmap — strong enough to wipe per-pixel noise out
+  // and leave only macro curvature, even on the luminance-fallback path.
+  useEffect(() => {
+    material.uniforms.uHeightSmoothness.value = heightSmoothness * 0.06;
+  }, [material, heightSmoothness]);
 
   // Expose the live mesh to the blueprint generator (projector export).
   const meshRef = useRef<THREE.Mesh>(null);

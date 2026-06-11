@@ -727,11 +727,16 @@ body {
 .relief-control__slider {
   -webkit-appearance: none;
   appearance: none;
-  width: 130px;
+  width: 84px;
   height: 2px;
   background: rgba(255, 255, 255, 0.18);
   border-radius: 999px;
   cursor: pointer;
+}
+
+.relief-control__sep {
+  color: rgba(255, 255, 255, 0.22);
+  font-size: 11px;
 }
 
 .relief-control__slider::-webkit-slider-thumb {

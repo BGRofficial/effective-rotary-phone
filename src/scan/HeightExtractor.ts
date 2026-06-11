@@ -2,6 +2,7 @@ import type { HeightExtractor, HeightOptions, HeightResult } from '../types';
 import { RemoteDepthExtractor } from './remoteDepthExtractor';
 import { TransformersDepthExtractor } from './transformersDepthExtractor';
 import { WebGLLuminanceHeightExtractor } from './webglLuminanceHeightExtractor';
+import { smoothHeightmap } from './heightSmoother';
 
 export type { HeightExtractor } from '../types';
 
@@ -27,6 +28,22 @@ class CompositeHeightExtractor implements HeightExtractor {
   private browserDisabled = false;
 
   async extractHeight(
+    image: ImageBitmap,
+    mask: HTMLCanvasElement,
+    options?: HeightOptions,
+  ): Promise<HeightResult> {
+    const raw = await this.extractRaw(image, mask, options);
+    // CPU mask-aware pre-blur kills the baseline per-pixel noise; the
+    // vertex shader's runtime Gaussian then provides macro smoothing on
+    // top, with the Smooth slider as live control.
+    return {
+      width: raw.width,
+      height: raw.height,
+      heightCanvas: smoothHeightmap(raw.heightCanvas),
+    };
+  }
+
+  private async extractRaw(
     image: ImageBitmap,
     mask: HTMLCanvasElement,
     options?: HeightOptions,
